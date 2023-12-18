@@ -4,14 +4,13 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Ix.Instances (Generically) where
+module Data.Ix.Instances (Generically (..)) where
 
-import Control.Applicative (liftA2)
 import Control.Category.Endofunctor qualified as E
 import Control.Category.Natural (type (~>) (..))
 import Data.Coerce (coerce)
 import Data.Ix.Foldable (IFoldable (..))
-import Data.Ix.Traversable (ITraversable (..))
+import Data.Ix.Traversable (ITraversable (..), itraverse)
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy (..))
 import Generics.Kind
@@ -55,6 +54,12 @@ instance
   where
   gfmap f p (x :*: y) = (:*:) (gfmap f p x) (gfmap f p y)
 
+instance (GFunctor f) => GFunctor (Kon c :=>: f) where
+  gfmap f p (SuchThat x) = SuchThat (gfmap f p x)
+
+instance (GFunctor f) => GFunctor (Var1 :~~: Kon c :=>: f) where
+  gfmap f p (SuchThat x) = SuchThat (gfmap f p x)
+
 instance (GFunctorArg t) => GFunctor (Field t) where
   gfmap f p (Field x) = Field (gfmapf @t f p x)
 
@@ -70,24 +75,24 @@ instance GFunctorArg (Kon t) where
 -- instances for fields (rec K) and (rec ix) where we are instantiating (MyEndo rec ix).
 -- more elaborate indices for (rec _) are possible but will be implement on request.
 
-instance GFunctorArg (Var (VZ @(l -> Type) @(l -> Type)) :@: Kon ix) where
+instance GFunctorArg (Var0 :@: Kon ix) where
   gfmapf (NT f) _ = f
 
-instance GFunctorArg (Var (VZ @(l -> Type) @(l -> Type)) :@: Var (VS VZ)) where
+instance GFunctorArg (Var0 :@: Var1) where
   gfmapf (NT f) _ = f
 
 -- instances for applications of ordinary functors
 
-instance (Functor f, GFunctorArg x) => GFunctorArg (f :$: x :: Atom (IxEndoK l) Type) where
+instance (Functor f, GFunctorArg x) => GFunctorArg (f :$: x) where
   gfmapf f p = Prelude.fmap (gfmapf @x f p)
 
 -- instances for applications of indexed functor. same observations as above about indices.
 
-instance (E.Endofunctor (~>) f, GFunctorArg x) => GFunctorArg (f :$: Var VZ :@: Kon ix :: Atom (IxEndoK l) Type) where
-  gfmapf f _ = (#) $ E.fmap f
+instance (E.Endofunctor (~>) f) => GFunctorArg (f :$: Var0 :@: Kon ix) where
+  gfmapf f _ = (E.fmap f #)
 
-instance (E.Endofunctor (~>) f) => GFunctorArg (f :$: Var VZ :@: Var (VS VZ) :: Atom (IxEndoK l) Type) where
-  gfmapf f _ = (#) $ E.fmap f
+instance (E.Endofunctor (~>) f) => GFunctorArg (f :$: Var0 :@: Var1) where
+  gfmapf f _ = (E.fmap f #)
 
 -- * Foldable
 
@@ -128,12 +133,20 @@ instance
   gfoldMap f p (x :*: y) = gfoldMap f p x <> gfoldMap f p y
   gfoldr f c p (x :*: y) = gfoldr f (gfoldr f c p x) p y
 
+instance (GFoldable f) => GFoldable (Kon c :=>: f) where
+  gfoldMap f p (SuchThat x) = gfoldMap f p x
+  gfoldr f c p (SuchThat x) = gfoldr f c p x
+
+instance (GFoldable f) => GFoldable (Var1 :~~: Kon c :=>: f) where
+  gfoldMap f p (SuchThat x) = gfoldMap f p x
+  gfoldr f c p (SuchThat x) = gfoldr f c p x
+
 instance (GFoldableArg t) => GFoldable (Field t) where
   gfoldMap f p (Field x) = gfoldMapf @t f p x
   gfoldr f c p (Field x) = gfoldrf @t f c p x
 
 type GFoldableArg :: forall {k}. Atom (IxEndoK k) Type -> Constraint
-class GFoldableArg (t :: Atom (IxEndoK l) Type) where
+class GFoldableArg t where
   gfoldMapf :: (Monoid m) => (forall ix. a ix -> m) -> forall ix. Proxy ix -> Interpret t (a :&&: ix :&&: LoT0) -> m
   gfoldrf :: (forall ix. a ix -> c -> c) -> c -> forall ix. Proxy ix -> Interpret t (a :&&: ix :&&: LoT0) -> c
 
@@ -141,30 +154,30 @@ instance GFoldableArg (Kon t) where
   gfoldMapf _ _ _ = mempty
   gfoldrf _ c _ _ = c
 
-instance GFoldableArg (Var (VZ @(l -> Type) @(l -> Type)) :@: Kon ix) where
+instance GFoldableArg (Var0 :@: Kon ix) where
   gfoldMapf f _ = f
   gfoldrf f c _ x = x `f` c
 
-instance GFoldableArg (Var (VZ @(l -> Type) @(l -> Type)) :@: Var (VS VZ)) where
+instance GFoldableArg (Var0 :@: Var1) where
   gfoldMapf f _ = f
   gfoldrf f c _ x = x `f` c
 
-instance (Foldable f, GFoldableArg x) => GFoldableArg (f :$: x :: Atom (IxEndoK l) Type) where
+instance (Foldable f, GFoldableArg x) => GFoldableArg (f :$: x) where
   gfoldMapf f p = foldMap (gfoldMapf @x f p)
   gfoldrf f c p = foldr (\x cc -> gfoldrf @x f cc p x) c
 
-instance (IFoldable f, GFoldableArg x) => GFoldableArg (f :$: Var VZ :@: Kon ix :: Atom (IxEndoK l) Type) where
+instance (IFoldable f) => GFoldableArg (f :$: Var0 :@: Kon ix) where
   gfoldMapf f _ = ifoldMap f
   gfoldrf f c _ = ifoldr f c
 
-instance (IFoldable f) => GFoldableArg (f :$: Var VZ :@: Var (VS VZ) :: Atom (IxEndoK l) Type) where
+instance (IFoldable f) => GFoldableArg (f :$: Var0 :@: Var1) where
   gfoldMapf f _ = ifoldMap f
   gfoldrf f c _ = ifoldr f c
 
 -- * Traversable
 
 instance (GTraversable (RepK f), GFoldable (RepK f), GFunctor (RepK f), GenericK f) => ITraversable (Generically f) where
-  itraverse f = fmap (Generically . toK) . gtraverse f Proxy . fromK . getGenerically
+  ifmapTraverse f g = fmap (f . Generically . toK) . gtraverse g Proxy . fromK . getGenerically
 
 type GTraversable :: (LoT (IxEndoK k) -> Type) -> Constraint
 class GTraversable t where
@@ -193,27 +206,33 @@ instance
   where
   gtraverse f p (x :*: y) = liftA2 (:*:) (gtraverse f p x) (gtraverse f p y)
 
+instance (GTraversable f) => GTraversable (Kon c :=>: f) where
+  gtraverse f p (SuchThat x) = SuchThat <$> gtraverse f p x
+
+instance (GTraversable f) => GTraversable (Var1 :~~: Kon c :=>: f) where
+  gtraverse f p (SuchThat x) = SuchThat <$> gtraverse f p x
+
 instance (GTraversableArg t) => GTraversable (Field t) where
   gtraverse f p (Field x) = Field <$> gtraversef @t f p x
 
 type GTraversableArg :: forall {k}. Atom (IxEndoK k) Type -> Constraint
-class GTraversableArg (t :: Atom (IxEndoK l) Type) where
+class GTraversableArg t where
   gtraversef :: (Applicative f) => (forall ix. a ix -> f (b ix)) -> forall ix. Proxy ix -> Interpret t (a :&&: ix :&&: LoT0) -> f (Interpret t (b :&&: ix :&&: LoT0))
 
 instance GTraversableArg (Kon t) where
   gtraversef _ _ = pure
 
-instance GTraversableArg (Var (VZ @(l -> Type) @(l -> Type)) :@: Kon ix) where
+instance GTraversableArg (Var0 :@: Kon ix) where
   gtraversef f _ = f
 
-instance GTraversableArg (Var (VZ @(l -> Type) @(l -> Type)) :@: Var (VS VZ)) where
+instance GTraversableArg (Var0 :@: Var1) where
   gtraversef f _ = f
 
-instance (Traversable f, GTraversableArg x) => GTraversableArg (f :$: x :: Atom (IxEndoK l) Type) where
+instance (Traversable f, GTraversableArg x) => GTraversableArg (f :$: x) where
   gtraversef f p = traverse (gtraversef @x f p)
 
-instance (ITraversable f, GTraversableArg x) => GTraversableArg (f :$: Var VZ :@: Kon ix :: Atom (IxEndoK l) Type) where
+instance (ITraversable f) => GTraversableArg (f :$: Var0 :@: Kon ix) where
   gtraversef f _ = itraverse f
 
-instance (ITraversable f) => GTraversableArg (f :$: Var VZ :@: Var (VS VZ) :: Atom (IxEndoK l) Type) where
+instance (ITraversable f) => GTraversableArg (f :$: Var0 :@: Var1) where
   gtraversef f _ = itraverse f

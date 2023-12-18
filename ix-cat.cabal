@@ -52,15 +52,26 @@ extra-doc-files: CHANGELOG.md
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
 
-common warnings
-  ghc-options: -Wall
+common common
+  ghc-options:      -Wall -fprint-potential-instances
+  default-language: GHC2021
 
 library
-  -- Import common warning flags.
-  import:           warnings
+  import:          common
 
   -- Modules exported by the library.
-  exposed-modules:  Data.Ix.Instances
+  exposed-modules:
+    Control.Category.Biendofunctor
+    Control.Category.Comonad
+    Control.Category.Endofunctor
+    Control.Category.Monad
+    Control.Category.Natural
+    Control.Category.RecursionSchemes
+    Data.Ix.Foldable
+    Data.Ix.Functor
+    Data.Ix.Instances
+    Data.Ix.RecursionSchemes
+    Data.Ix.Traversable
 
   -- Modules included in this library but not exported.
   -- other-modules:
@@ -70,12 +81,20 @@ library
 
   -- Other library packages from which modules are imported.
   build-depends:
-    , base           ^>=4.17.2.0
+    , base           >=4.17.2 && <4.20
     , kind-apply
     , kind-generics
 
   -- Directories containing source files.
-  hs-source-dirs:   src
+  hs-source-dirs:  src
 
-  -- Base language which the package is written in.
-  default-language: GHC2021
+test-suite test
+  import:         common
+  type:           detailed-0.9
+  test-module:    Test
+  hs-source-dirs: test
+  build-depends:
+    , base              >=4.17.2 && <4.20
+    , Cabal
+    , ix-cat
+    , kind-generics-th

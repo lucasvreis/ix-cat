@@ -6,8 +6,8 @@ import Control.Category (Category (..))
 import Control.Category.Biendofunctor (Cartesian (..), CoCartesian (..))
 import Control.Category.Comonad (Comonad (..))
 import Control.Category.Endofunctor (Endofunctor (..))
-import Prelude hiding (fmap, id, (.), Monad (..))
 import Control.Category.Monad (Monad (..))
+import Prelude hiding (Monad (..), fmap, id, (.))
 
 type family Base (b :: k) :: k -> k
 
@@ -52,3 +52,12 @@ gunfold ::
 gunfold k f = a . return . f
   where
     a = embed . fmap (a . fmap f . join) . k
+
+refold :: (Endofunctor c f) => (f b `c` b) -> (a `c` f a) -> a `c` b
+refold f g = h where h = f . fmap h . g
+
+hoist :: (Recursive c s, Corecursive c t) => (forall a. Base s a `c` Base t a) -> s `c` t
+hoist f = fold (embed . f)
+
+transverse :: (Recursive c s, Corecursive c t, Endofunctor c f) => (forall a. Base s (f a) `c` f (Base t a)) -> s `c` f t
+transverse f = fold (fmap embed . f)

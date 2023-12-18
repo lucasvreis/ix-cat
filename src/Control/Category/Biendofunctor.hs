@@ -36,7 +36,7 @@ class (Category r, Biendofunctor r (Product r)) => Cartesian (r :: k -> k -> Typ
   f &&& g = bimap f g . diag
   {-# MINIMAL fst, snd, diag | fst, snd, (&&&) #-}
 
-instance (A.Arrow a) => Cartesian a where
+instance (A.Arrow a, Category a) => Cartesian a where
   type Product a = (,)
   fst = A.arr Prelude.fst
   snd = A.arr Prelude.snd
@@ -53,7 +53,7 @@ class (Category r, Biendofunctor r (Sum r)) => CoCartesian (r :: k -> k -> Type)
   codiag = id ||| id
   f ||| g = codiag . bimap f g
 
-instance (A.ArrowChoice a) => CoCartesian a where
+instance (A.ArrowChoice a, Category a) => CoCartesian a where
   type Sum a = Either
   inl = A.arr Left
   inr = A.arr Right

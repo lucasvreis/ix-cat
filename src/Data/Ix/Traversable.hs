@@ -1,16 +1,18 @@
 {-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
-module Data.Ix.Traversable (ITraversable (..)) where
+module Data.Ix.Traversable (ITraversable (..), itraverse, isequenceA) where
 
+import Control.Category.Natural (type (~~>))
 import Data.Functor.Compose (Compose (..))
 import Data.Ix.Foldable (IFoldable)
-import Data.Ix.Functor (IFunctor, ifmap)
+import Data.Ix.Functor (IFunctor)
 
 class (IFunctor t, IFoldable t) => ITraversable t where
-  itraverse :: (Applicative f) => (forall ix. a ix -> f (b ix)) -> forall ix. t a ix -> f (t b ix)
-  itraverse f = isequenceA . ifmap (Compose . f)
+  ifmapTraverse :: (Applicative f) => (t b ~~> r) -> (forall ix. a ix -> f (b ix)) -> forall ix. t a ix -> f (r ix)
 
-  isequenceA :: (Applicative f) => forall ix. t (Compose f a) ix -> f (t a ix)
-  isequenceA = itraverse getCompose
+itraverse :: (ITraversable t, Applicative f) => (forall ix. a ix -> f (b ix)) -> forall ix. t a ix -> f (t b ix)
+itraverse = ifmapTraverse id
 
-  {-# MINIMAL itraverse | isequenceA #-}
+isequenceA :: (ITraversable t, Applicative f) => t (Compose f a) ~~> Compose f (t a)
+isequenceA = Compose . ifmapTraverse id getCompose

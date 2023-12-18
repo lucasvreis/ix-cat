@@ -3,13 +3,20 @@
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Some instances for the category of natural transformations.
-module Control.Category.Natural where
+module Control.Category.Natural (
+  type (~~>),
+  type (~>) (..),
+  NProd (..),
+  NSum (..),
+) where
 
 import Control.Category qualified as C (Category (..))
 import Control.Category.Biendofunctor
 import Data.Kind (Type)
 
-newtype a ~> b = NT {(#) :: forall ix. a ix -> b ix}
+type a ~~> b = forall ix. a ix -> b ix
+
+newtype a ~> b = NT {(#) :: a ~~> b}
 
 instance C.Category (~>) where
   id = NT id
