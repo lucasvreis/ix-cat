@@ -6,6 +6,7 @@
 
 module Data.Ix.Instances (Generically (..)) where
 
+import Control.Applicative (liftA2)
 import Control.Category.Endofunctor qualified as E
 import Control.Category.Natural (type (~>) (..))
 import Data.Coerce (coerce)
