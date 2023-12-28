@@ -67,6 +67,7 @@ library
     Control.Category.Monad
     Control.Category.Natural
     Control.Category.RecursionSchemes
+    Data.Ix.Cofree
     Data.Ix.Foldable
     Data.Ix.Functor
     Data.Ix.Instances
