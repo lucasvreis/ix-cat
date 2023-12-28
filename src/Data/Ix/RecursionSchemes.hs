@@ -3,16 +3,20 @@
 
 module Data.Ix.RecursionSchemes (
   Fix (..),
+  distHisto,
+  histo,
   module Control.Category.RecursionSchemes,
 ) where
 
-import Control.Category.Natural (type (~>) (..))
+import Control.Category.Natural (type (~>) (..), type (~~>))
 import Control.Category.RecursionSchemes
 import Control.DeepSeq (NFData)
-import Data.Ix.Functor (IFunctor)
+import Data.Ix.Functor (IFunctor, ifmap)
 import Data.Kind (Type)
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
+import Data.Ix.Cofree (CofreeIx (..), unwrap)
+import Control.Category.Comonad (Comonad(..))
 
 newtype Fix (f :: (k -> Type) -> k -> Type) (ix :: k) = Fix {unFix :: f (Fix f) ix}
   deriving (Generic, Typeable)
@@ -30,3 +34,9 @@ instance (IFunctor f) => Recursive (~>) (Fix f) where
 
 instance (IFunctor f) => Corecursive (~>) (Fix f) where
   embed = NT Fix
+
+distHisto :: IFunctor f => f (CofreeIx f a) ~~> CofreeIx f (f a)
+distHisto fc = ifmap (extract #) fc :< ifmap (distHisto . unwrap) fc
+
+histo :: (Recursive (~>) t) => (Base t (CofreeIx (Base t) a) ~> a) -> t ~> a
+histo = gfold (NT distHisto)
