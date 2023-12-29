@@ -31,9 +31,11 @@ type instance Base (Fix f) = f
 
 instance (IFunctor f) => Recursive (~>) (Fix f) where
   project = NT unFix
+  {-# INLINE project #-}
 
 instance (IFunctor f) => Corecursive (~>) (Fix f) where
   embed = NT Fix
+  {-# INLINE embed #-}
 
 distHisto :: IFunctor f => f (CofreeIx f a) ~~> CofreeIx f (f a)
 distHisto fc = ifmap (extract #) fc :< ifmap (distHisto . unwrap) fc
