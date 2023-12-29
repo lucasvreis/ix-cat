@@ -56,8 +56,8 @@ gunfold k f = a . return . f
 refold :: (Endofunctor c f) => (f b `c` b) -> (a `c` f a) -> a `c` b
 refold f g = h where h = f . fmap h . g
 
-hoist :: (Recursive c s, Corecursive c t) => (forall a. Base s a `c` Base t a) -> s `c` t
+hoist :: (Recursive c s, Corecursive c t) => (Base s t `c` Base t t) -> s `c` t
 hoist f = fold (embed . f)
 
-transverse :: (Recursive c s, Corecursive c t, Endofunctor c f) => (forall a. Base s (f a) `c` f (Base t a)) -> s `c` f t
+transverse :: (Recursive c s, Corecursive c t, Endofunctor c f) => (Base s (f t) `c` f (Base t t)) -> s `c` f t
 transverse f = fold (fmap embed . f)
