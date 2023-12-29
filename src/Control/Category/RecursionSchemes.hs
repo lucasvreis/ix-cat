@@ -17,6 +17,9 @@ class (Endofunctor c (Base b)) => Recursive c b where
 fold :: (Recursive c t) => (Base t a `c` a) -> t `c` a
 fold f = c where c = f . fmap c . project
 
+para' :: (Cartesian c, Recursive c t) => (Product c t (Base t a) `c` a) -> t `c` a
+para' f = p where p = f . (id &&& (fmap p . project))
+
 para :: (Cartesian c, Recursive c t) => (Base t (Product c t a) `c` a) -> t `c` a
 para f = p where p = f . fmap (id &&& p) . project
 
@@ -37,6 +40,9 @@ class (Endofunctor c (Base b)) => Corecursive c b where
 
 unfold :: (Corecursive c t) => (a `c` Base t a) -> a `c` t
 unfold f = c where c = embed . fmap c . f
+
+apo' :: (CoCartesian c, Corecursive c t) => (a `c` Sum c t (Base t a)) -> a `c` t
+apo' f = c where c = (id ||| (embed . fmap c)) . f
 
 apo :: (CoCartesian c, Corecursive c t) => (a `c` Base t (Sum c t a)) -> a `c` t
 apo f = c where c = embed . fmap (id ||| c) . f
