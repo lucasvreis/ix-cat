@@ -17,6 +17,7 @@ import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import Data.Ix.Cofree (CofreeIx (..), unwrap)
 import Control.Category.Comonad (Comonad(..))
+import Data.Type.Equality (TestEquality (..))
 
 newtype Fix (f :: (k -> Type) -> k -> Type) (ix :: k) = Fix {unFix :: f (Fix f) ix}
   deriving (Generic, Typeable)
@@ -26,6 +27,9 @@ deriving instance (Ord (f (Fix f) ix)) => (Ord (Fix f ix))
 deriving instance (Read (f (Fix f) ix)) => (Read (Fix f ix))
 deriving instance (Show (f (Fix f) ix)) => (Show (Fix f ix))
 deriving instance (NFData (f (Fix f) ix)) => (NFData (Fix f ix))
+
+instance (TestEquality (f (Fix f))) => TestEquality (Fix f) where
+  testEquality (Fix x) (Fix y) = testEquality x y
 
 type instance Base (Fix f) = f
 
