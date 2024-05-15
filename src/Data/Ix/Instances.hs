@@ -3,6 +3,7 @@
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 module Data.Ix.Instances (Generically (..)) where
 
@@ -89,11 +90,11 @@ instance (Functor f, GFunctorArg x) => GFunctorArg (f :$: x) where
 
 -- instances for applications of indexed functor. same observations as above about indices.
 
-instance (E.Endofunctor (~>) f) => GFunctorArg (f :$: Var0 :@: Kon ix) where
-  gfmapf f _ = (E.fmap f #)
+instance (E.Endofunctor (~>) f, forall ix. GFunctorArg (x :@: Kon ix)) => GFunctorArg (f :$: x :@: Var1) where
+  gfmapf f p = (E.fmap (NT $ \(x :: a ix) -> gfmapf @(x :@: Kon ix) f p x) #)
 
-instance (E.Endofunctor (~>) f) => GFunctorArg (f :$: Var0 :@: Var1) where
-  gfmapf f _ = (E.fmap f #)
+instance (E.Endofunctor (~>) f, forall ix. GFunctorArg (x :@: Kon ix)) => GFunctorArg (f :$: x :@: Kon jx) where
+  gfmapf f p = (E.fmap (NT $ \(x :: a ix) -> gfmapf @(x :@: Kon ix) f p x) #)
 
 -- * Foldable
 
@@ -167,13 +168,13 @@ instance (Foldable f, GFoldableArg x) => GFoldableArg (f :$: x) where
   gfoldMapf f p = foldMap (gfoldMapf @x f p)
   gfoldrf f c p = foldr (\x cc -> gfoldrf @x f cc p x) c
 
-instance (IFoldable f) => GFoldableArg (f :$: Var0 :@: Kon ix) where
-  gfoldMapf f _ = ifoldMap f
-  gfoldrf f c _ = ifoldr f c
+instance (IFoldable f, forall ix. GFoldableArg (x :@: Kon ix)) => GFoldableArg (f :$: x :@: Var1) where
+  gfoldMapf f p = ifoldMap (\(x :: a ix) -> gfoldMapf @(x :@: Kon ix) f p x)
+  gfoldrf f c p = ifoldr (\(x :: a ix) d -> gfoldrf @(x :@: Kon ix) f d p x) c
 
-instance (IFoldable f) => GFoldableArg (f :$: Var0 :@: Var1) where
-  gfoldMapf f _ = ifoldMap f
-  gfoldrf f c _ = ifoldr f c
+instance (IFoldable f, forall ix. GFoldableArg (x :@: Kon ix)) => GFoldableArg (f :$: x :@: Kon jx) where
+  gfoldMapf f p = ifoldMap (\(x :: a ix) -> gfoldMapf @(x :@: Kon ix) f p x)
+  gfoldrf f c p = ifoldr (\(x :: a ix) d -> gfoldrf @(x :@: Kon ix) f d p x) c
 
 -- * Traversable
 
@@ -232,8 +233,8 @@ instance GTraversableArg (Var0 :@: Var1) where
 instance (Traversable f, GTraversableArg x) => GTraversableArg (f :$: x) where
   gtraversef f p = traverse (gtraversef @x f p)
 
-instance (ITraversable f) => GTraversableArg (f :$: Var0 :@: Kon ix) where
-  gtraversef f _ = itraverse f
+instance (ITraversable f, forall ix. GTraversableArg (x :@: Kon ix)) => GTraversableArg (f :$: x :@: Var1) where
+  gtraversef f p = itraverse (\(x :: a ix) -> gtraversef @(x :@: Kon ix) f p x)
 
-instance (ITraversable f) => GTraversableArg (f :$: Var0 :@: Var1) where
-  gtraversef f _ = itraverse f
+instance (ITraversable f, forall ix. GTraversableArg (x :@: Kon ix)) => GTraversableArg (f :$: x :@: Kon jx) where
+  gtraversef f p = itraverse (\(x :: a ix) -> gtraversef @(x :@: Kon ix) f p x)
